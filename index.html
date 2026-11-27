@@ -146,5 +146,49 @@ function confirmOrder(){
   cart=[];checkoutItems=[];document.getElementById('cartCount').innerText='0';document.querySelectorAll('.inp').forEach(input=>input.value='');closeAll();alert('Your order was placed successfully. We will call you before delivery.')
 }
 </script>
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js";
+  import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAMuXUCt0jX5X_DL2KZ8D2ELq3ZkYSYCRY",
+    authDomain: "mt3ms-integrated-farm.firebaseapp.com",
+    projectId: "mt3ms-integrated-farm",
+    storageBucket: "mt3ms-integrated-farm.firebasestorage.app",
+    messagingSenderId: "700860360136",
+    appId: "1:700860360136:web:9a421a073150b19bcb8cfd",
+    measurementId: "G-RZH67MFFGM"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  async function syncFromFirebase() {
+    try {
+      const snap = await getDocs(collection(db, "products"));
+      if (!snap.empty) {
+        const prods = [];
+        snap.forEach(d => prods.push({ id: d.id, ...d.data() }));
+        localStorage.setItem("myt3ms_seller_products", JSON.stringify(prods));
+        console.log("Loaded from Firebase:", prods.length);
+      } else {
+        // First time: upload what is in localStorage to Firebase
+        const local = JSON.parse(localStorage.getItem("myt3ms_seller_products") || "[]");
+        for (const p of local) {
+          const { id, ...rest } = p;
+          await addDoc(collection(db, "products"), rest);
+        }
+        console.log("Uploaded local products to Firebase");
+      }
+      // Re-draw the shop with Firebase data
+      if (typeof render === "function") render();
+      if (typeof updateBadge === "function") updateBadge();
+    } catch (e) {
+      console.log("Firebase sync failed, using local:", e);
+    }
+  }
+
+  syncFromFirebase();
+</script>
 </body>
 </html>
