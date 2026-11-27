@@ -262,4 +262,46 @@ function renderPayments(){
   document.getElementById('paymentsList').innerHTML=`<div class="pay"><b>Total Money Received: ₦${total.toLocaleString()}</b></div>`+(Object.keys(byDay).length?Object.keys(byDay).map(d=>`<div class="sectionHead"><span>${d}</span><span>₦${byDay[d].total.toLocaleString()} that day</span></div>`+byDay[d].items.map(p=>`<div class="order"><b>${p.produce} (${p.cat})</b><br>₦${Number(p.amount).toLocaleString()} - Buyer: ${p.buyer}<br><small>${p.date} ${p.time}</small></div>`).join('')).join(''):'<p style="color:#777">No payments yet. Money appears here when you tap Delivered.</p>');
 }
 renderAll();
+</script><script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js";
+  import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAMuXUCt0jX5X_DL2KZ8D2ELq3ZkYSYCRY",
+    authDomain: "mt3ms-integrated-farm.firebaseapp.com",
+    projectId: "mt3ms-integrated-farm",
+    storageBucket: "mt3ms-integrated-farm.firebasestorage.app",
+    messagingSenderId: "700860360136",
+    appId: "1:700860360136:web:9a421a073150b19bcb8cfd",
+    measurementId: "G-RZH67MFFGM"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  async function uploadToFirebase() {
+    try {
+      const local = JSON.parse(localStorage.getItem("myt3ms_seller_products") || "[]");
+      const snap = await getDocs(collection(db, "products"));
+      const inFirebase = new Set();
+      snap.forEach(d => {
+        const data = d.data();
+        if (data.name) inFirebase.add(data.name + "|" + data.price);
+      });
+      for (const p of local) {
+        const key = p.name + "|" + p.price;
+        if (!inFirebase.has(key)) {
+          const { id, ...rest } = p;
+          await addDoc(collection(db, "products"), rest);
+          console.log("Uploaded:", p.name);
+        }
+      }
+    } catch (e) {
+      console.log("Upload failed:", e);
+    }
+  }
+
+  // Upload now, and check every 3 seconds for new products seller adds
+  uploadToFirebase();
+  setInterval(uploadToFirebase, 3000);
 </script></body></html>
